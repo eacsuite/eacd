@@ -20,7 +20,7 @@
     1. [Code Contribution Guidelines](#ContributionGuidelines)
     2. [JSON-RPC Reference](#JSONRPCReference)
     3. [The eacsuite Earthcoin-related Go Packages](#GoPackages)
-    4. [Earthcoin functional changes](#LtcdDifferences)
+    4. [Earthcoin functional changes](#EacdDifferences)
     5. [Diffing eacd and btcd codebases](#Diffing)
 
 <a name="About" />
@@ -301,7 +301,7 @@ information.
 
 
 
-<a name="LtcdDifferences" />
+<a name="EacdDifferences" />
 
 * Earthcoin functional changes:
     * wire/blockheader.go - declare PowHash method (for scrypt) used instead of BlockHash
