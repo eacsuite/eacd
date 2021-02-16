@@ -116,12 +116,15 @@ func BuildMerkleTreeStore(transactions []*eacutil.Tx, witness bool) []*chainhash
 		// the coinbase's wtxid is all zeroes.
 		switch {
 		case witness && i == 0:
+			//fmt.Printf("BuildMerkleTreeStore --------- witness && i == 0")
 			var zeroHash chainhash.Hash
 			merkles[i] = &zeroHash
 		case witness:
+			//fmt.Printf("BuildMerkleTreeStore --------- witness")
 			wSha := tx.MsgTx().WitnessHash()
 			merkles[i] = &wSha
 		default:
+			//fmt.Printf("BuildMerkleTreeStore --------- default  tx.Hash() : %s\n", tx.Hash())
 			merkles[i] = tx.Hash()
 		}
 

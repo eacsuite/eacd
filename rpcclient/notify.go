@@ -666,6 +666,7 @@ func parseChainTxNtfnParams(params []json.RawMessage) (*eacutil.Tx,
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Printf("parseChainTxNtfnParams --------- serializedTx : %s\n", serializedTx)
 	var msgTx wire.MsgTx
 	err = msgTx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {

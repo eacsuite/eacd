@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"time"
+	"strings"
 
 	"github.com/eacsuite/eacd/chaincfg/chainhash"
 	"github.com/eacsuite/eacd/wire"
@@ -568,6 +569,7 @@ func shallowCopyTx(tx *wire.MsgTx) wire.MsgTx {
 		TxIn:     make([]*wire.TxIn, len(tx.TxIn)),
 		TxOut:    make([]*wire.TxOut, len(tx.TxOut)),
 		LockTime: tx.LockTime,
+		StrTxComment: tx.StrTxComment,
 	}
 	txIns := make([]wire.TxIn, len(tx.TxIn))
 	for i, oldTxIn := range tx.TxIn {
@@ -590,13 +592,13 @@ func CalcSignatureHash(script []byte, hashType SigHashType, tx *wire.MsgTx, idx 
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse output script: %v", err)
 	}
-	return calcSignatureHash(parsedScript, hashType, tx, idx), nil
+	return calcSignatureHash(parsedScript, hashType, tx, idx, false), nil
 }
 
 // calcSignatureHash will, given a script and hash type for the current script
 // engine instance, calculate the signature hash to be used for signing and
 // verification.
-func calcSignatureHash(script []parsedOpcode, hashType SigHashType, tx *wire.MsgTx, idx int) []byte {
+func calcSignatureHash(script []parsedOpcode, hashType SigHashType, tx *wire.MsgTx, idx int, serializeByVer1 bool) []byte {
 	// The SigHashSingle signature type signs only the corresponding input
 	// and output (the output with the same index number as the input).
 	//
@@ -635,6 +637,7 @@ func calcSignatureHash(script []parsedOpcode, hashType SigHashType, tx *wire.Msg
 			// above only returns a valid script.
 			sigScript, _ := unparseScript(script)
 			txCopy.TxIn[idx].SignatureScript = sigScript
+
 		} else {
 			txCopy.TxIn[i].SignatureScript = nil
 		}
@@ -679,11 +682,19 @@ func calcSignatureHash(script []parsedOpcode, hashType SigHashType, tx *wire.Msg
 		txCopy.TxIn = txCopy.TxIn[idx : idx+1]
 	}
 
+
 	// The final hash is the double sha256 of both the serialized modified
 	// transaction and the hash type (encoded as a 4-byte little-endian
 	// value) appended.
 	wbuf := bytes.NewBuffer(make([]byte, 0, txCopy.SerializeSizeStripped()+4))
-	txCopy.SerializeNoWitness(wbuf)
+	// --------- for eac 
+	if strings.Count(txCopy.StrTxComment,"")-1 <= 0 || serializeByVer1{
+		// --------- serializeByVer1 : txIn.tx.Version == 1
+		txCopy.SerializeNoWitness(wbuf)
+	}else{
+		txCopy.SerializeNoWitness2(wbuf)
+	}
+
 	binary.Write(wbuf, binary.LittleEndian, hashType)
 	return chainhash.DoubleHashB(wbuf.Bytes())
 }

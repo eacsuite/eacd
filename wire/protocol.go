@@ -50,7 +50,7 @@ const (
 
 	// FeeFilterVersion is the protocol version which added a new
 	// feefilter message.
-	FeeFilterVersion uint32 = 70017
+	FeeFilterVersion uint32 = 70013
 )
 
 // ServiceFlag identifies services supported by a bitcoin peer.
@@ -147,16 +147,16 @@ type BitcoinNet uint32
 // better idea to simply disconnect clients that are misbehaving over TCP.
 const (
 	// MainNet represents the main earthcoin network.
-	MainNet BitcoinNet = 0xdbb6c0fb
+	MainNet BitcoinNet = 0xfdf1dbc0
 
 	// TestNet represents the regression test network.
-	TestNet BitcoinNet = 0xdab5bffa
+	TestNet BitcoinNet = 0xb061a464
 
 	// TestNet3 represents the test network (version 3).
 	TestNet3 BitcoinNet = 0x0709110b
 
 	// TestNet4 represents the test network (version 4).
-	TestNet4 BitcoinNet = 0xf1c8d2fd
+	TestNet4 BitcoinNet = 0xf1b6c2fd
 
 	// SimNet represents the simulation test network.
 	SimNet BitcoinNet = 0x12141c16

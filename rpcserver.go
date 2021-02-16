@@ -761,6 +761,7 @@ func createTxRawResult(chainParams *chaincfg.Params, mtx *wire.MsgTx,
 		Vout:     createVoutList(mtx, chainParams, nil),
 		Version:  mtx.Version,
 		LockTime: mtx.LockTime,
+		TxComment: mtx.StrTxComment,
 	}
 
 	if blkHeader != nil {
@@ -2602,6 +2603,7 @@ func handleGetRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan str
 			return nil, internalRPCError(err.Error(), context)
 		}
 
+		fmt.Printf("handleGetRawTransaction --------- txBytes : %s\n", txBytes)
 		// Deserialize the transaction
 		var msgTx wire.MsgTx
 		err = msgTx.Deserialize(bytes.NewReader(txBytes))
@@ -2870,6 +2872,7 @@ func fetchInputTxos(s *rpcServer, tx *wire.MsgTx) (map[wire.OutPoint]wire.TxOut,
 			return nil, rpcNoTxInfoError(&origin.Hash)
 		}
 
+		fmt.Printf("fetchInputTxos --------- txBytes : %s\n", txBytes)
 		// Deserialize the transaction
 		var msgTx wire.MsgTx
 		err = msgTx.Deserialize(bytes.NewReader(txBytes))
@@ -3309,6 +3312,8 @@ func handleSendRawTransaction(s *rpcServer, cmd interface{}, closeChan <-chan st
 	if err != nil {
 		return nil, rpcDecodeHexError(hexStr)
 	}
+
+	fmt.Printf("handleSendRawTransaction --------- serializedTx : %s\n", serializedTx)
 	var msgTx wire.MsgTx
 	err = msgTx.Deserialize(bytes.NewReader(serializedTx))
 	if err != nil {

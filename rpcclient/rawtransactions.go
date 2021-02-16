@@ -13,6 +13,8 @@ import (
 	"github.com/eacsuite/eacd/chaincfg/chainhash"
 	"github.com/eacsuite/eacd/wire"
 	"github.com/eacsuite/eacutil"
+
+	"fmt"
 )
 
 const (
@@ -89,6 +91,7 @@ func (r FutureGetRawTransactionResult) Receive() (*eacutil.Tx, error) {
 		return nil, err
 	}
 
+	fmt.Printf("Receive --------- serializedTx : %s\n", serializedTx)
 	// Deserialize the transaction and return it.
 	var msgTx wire.MsgTx
 	if err := msgTx.Deserialize(bytes.NewReader(serializedTx)); err != nil {
@@ -272,6 +275,7 @@ func (r FutureCreateRawTransactionResult) Receive() (*wire.MsgTx, error) {
 		return nil, err
 	}
 
+	fmt.Printf("Receive2 --------- serializedTx : %s\n", serializedTx)
 	// Deserialize the transaction and return it.
 	var msgTx wire.MsgTx
 	// we try both the new and old encoding format
@@ -409,6 +413,7 @@ func (r FutureSignRawTransactionResult) Receive() (*wire.MsgTx, bool, error) {
 		return nil, false, err
 	}
 
+	fmt.Printf("Receive3 --------- serializedTx : %s\n", serializedTx)
 	// Deserialize the transaction and return it.
 	var msgTx wire.MsgTx
 	if err := msgTx.Deserialize(bytes.NewReader(serializedTx)); err != nil {
@@ -610,6 +615,7 @@ func (r FutureSearchRawTransactionsResult) Receive() ([]*wire.MsgTx, error) {
 			return nil, err
 		}
 
+		fmt.Printf("Receive4 --------- serializedTx : %s\n", serializedTx)
 		// Deserialize the transaction and add it to the result slice.
 		var msgTx wire.MsgTx
 		err = msgTx.Deserialize(bytes.NewReader(serializedTx))

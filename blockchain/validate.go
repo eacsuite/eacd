@@ -755,9 +755,15 @@ func (b *BlockChain) checkBlockHeaderContext(header *wire.BlockHeader, prevNode 
 		medianTime = time.Unix((medianTime.Unix() + timeDiff), 0)
 
 		if !header.Timestamp.After(medianTime) {
-			str := "block timestamp of %v is not after expected %v"
-			str = fmt.Sprintf(str, header.Timestamp, medianTime)
-			return ruleError(ErrTimeTooOld, str)
+
+			// --------- for eac
+			medianTime = time.Unix((medianTime.Unix() - timeDiff), 0)
+
+			if !header.Timestamp.After(medianTime) {
+				str := "block timestamp of %v is not after expected %v"
+				str = fmt.Sprintf(str, header.Timestamp, medianTime)
+				return ruleError(ErrTimeTooOld, str)
+			}
 		}
 	}
 

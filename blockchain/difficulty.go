@@ -243,21 +243,29 @@ func (b *BlockChain) calcNextRequiredDifficulty(lastNode *blockNode, newBlockTim
 
 	// Limit the amount of adjustment that can occur to the previous
 	// difficulty.
+	targetTimespan := int64(b.chainParams.TargetTimePerBlock / time.Second)
+	adjustmentFactor := b.chainParams.RetargetAdjustmentFactor
+
 	actualTimespan := lastNode.timestamp - firstNode.timestamp
 	adjustedTimespan := actualTimespan
-	if actualTimespan < b.minRetargetTimespan {
-		adjustedTimespan = b.minRetargetTimespan
-	} else if actualTimespan > b.maxRetargetTimespan {
-		adjustedTimespan = b.maxRetargetTimespan
+	// if actualTimespan < b.minRetargetTimespan {
+	// 	adjustedTimespan = b.minRetargetTimespan
+	// } else if actualTimespan > b.maxRetargetTimespan {
+	// 	adjustedTimespan = b.maxRetargetTimespan
+	// }
+	if actualTimespan < targetTimespan/adjustmentFactor {
+		adjustedTimespan = targetTimespan/adjustmentFactor
+	} else if actualTimespan > targetTimespan*adjustmentFactor {
+		adjustedTimespan = targetTimespan*adjustmentFactor
 	}
-
+	
 	// Calculate new target difficulty as:
 	//  currentDifficulty * (adjustedTimespan / targetTimespan)
 	// The result uses integer division which means it will be slightly
 	// rounded down.  Bitcoind also uses integer division to calculate this
 	// result.
 	oldTarget := CompactToBig(lastNode.bits)
-	targetTimespan := int64(b.chainParams.TargetTimespan / time.Second)
+	//targetTimespan := int64(b.chainParams.TargetTimePerBlock / time.Second)
 	var nInterval int64  = 30;			// nTargetTimespan / nTargetSpacing = 30*60 / 60 = 30
 	newTarget := new(big.Int).Mul(oldTarget , big.NewInt(((nInterval - 1) * targetTimespan + 2 * adjustedTimespan)));
 	newTarget.Div(newTarget, big.NewInt((nInterval + 1) * targetTimespan));

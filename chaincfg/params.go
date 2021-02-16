@@ -255,7 +255,7 @@ var MainNetParams = Params{
 	CoinbaseMaturity:         30,
 	SubsidyReductionInterval: 525600,
 	TargetTimespan:           time.Minute * 30, // 30 minutes
-	TargetTimePerBlock:       time.Minute * 1,  // 1 minutes
+	TargetTimePerBlock:       time.Second * 60,  // 1 minutes
 	RetargetAdjustmentFactor: 16,                                       // 25% less, 400% more
 	ReduceMinDifficulty:      false,
 	MinDiffReductionTime:     0,
@@ -378,7 +378,7 @@ var MainNetParams = Params{
 var RegressionNetParams = Params{
 	Name:        "regtest",
 	Net:         wire.TestNet,
-	DefaultPort: "18444",
+	DefaultPort: "45677",
 	DNSSeeds:    []DNSSeed{},
 
 	// Chain parameters

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/eacsuite/eacd/wire"
 	"github.com/eacsuite/eacutil"
@@ -635,6 +636,7 @@ type TxRawResult struct {
 	LockTime      uint32 `json:"locktime"`
 	Vin           []Vin  `json:"vin"`
 	Vout          []Vout `json:"vout"`
+	TxComment 	string `json:"txComment"`
 	BlockHash     string `json:"blockhash,omitempty"`
 	Confirmations uint64 `json:"confirmations,omitempty"`
 	Time          int64  `json:"time,omitempty"`
@@ -711,6 +713,7 @@ func (f *FundRawTransactionResult) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	fmt.Printf("UnmarshalJSON --------- txBytes : %s\n", txBytes)
 	var msgTx wire.MsgTx
 	witnessErr := msgTx.Deserialize(bytes.NewReader(txBytes))
 	if witnessErr != nil {

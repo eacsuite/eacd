@@ -185,10 +185,15 @@ func (b *BlockChain) ProcessBlock(block *eacutil.Block, flags BehaviorFlags) (bo
 		// Ensure the block timestamp is after the checkpoint timestamp.
 		checkpointTime := time.Unix(checkpointNode.timestamp, 0)
 		if blockHeader.Timestamp.Before(checkpointTime) {
-			str := fmt.Sprintf("block %v has timestamp %v before "+
-				"last checkpoint timestamp %v", blockHash,
-				blockHeader.Timestamp, checkpointTime)
-			return false, false, ruleError(ErrCheckpointTimeTooOld, str)
+			// --------- for eac
+			d, _ := time.ParseDuration("-20m")
+			checkpointTime2 := checkpointTime.Add(d)
+			if blockHeader.Timestamp.Before(checkpointTime2){
+				str := fmt.Sprintf("block %v has timestamp %v before "+
+					"last checkpoint timestamp %v", blockHash,
+					blockHeader.Timestamp, checkpointTime)
+				return false, false, ruleError(ErrCheckpointTimeTooOld, str)
+			}
 		}
 		if !fastAdd {
 			// Even though the checks prior to now have already ensured the

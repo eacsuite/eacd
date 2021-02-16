@@ -9,6 +9,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	//"fmt"
 
 	"github.com/eacsuite/eacd/chaincfg"
 	"github.com/eacsuite/eacd/chaincfg/chainhash"

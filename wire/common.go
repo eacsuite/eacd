@@ -476,6 +476,7 @@ func writeElements(w io.Writer, elements ...interface{}) error {
 func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 	discriminant, err := binarySerializer.Uint8(r)
 	if err != nil {
+		fmt.Printf("ReadVarInt a\n")
 		return 0, err
 	}
 
@@ -484,6 +485,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 	case 0xff:
 		sv, err := binarySerializer.Uint64(r, littleEndian)
 		if err != nil {
+			fmt.Printf("ReadVarInt b\n")
 			return 0, err
 		}
 		rv = sv
@@ -492,6 +494,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0x100000000)
 		if rv < min {
+			fmt.Printf("ReadVarInt c\n")
 			return 0, messageError("ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
@@ -499,6 +502,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 	case 0xfe:
 		sv, err := binarySerializer.Uint32(r, littleEndian)
 		if err != nil {
+			fmt.Printf("ReadVarInt d\n")
 			return 0, err
 		}
 		rv = uint64(sv)
@@ -507,6 +511,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0x10000)
 		if rv < min {
+			fmt.Printf("ReadVarInt e\n")
 			return 0, messageError("ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
@@ -514,6 +519,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 	case 0xfd:
 		sv, err := binarySerializer.Uint16(r, littleEndian)
 		if err != nil {
+			fmt.Printf("ReadVarInt f\n")
 			return 0, err
 		}
 		rv = uint64(sv)
@@ -522,6 +528,7 @@ func ReadVarInt(r io.Reader, pver uint32) (uint64, error) {
 		// encoded using fewer bytes.
 		min := uint64(0xfd)
 		if rv < min {
+			fmt.Printf("ReadVarInt g\n")
 			return 0, messageError("ReadVarInt", fmt.Sprintf(
 				errNonCanonicalVarInt, rv, discriminant, min))
 		}
@@ -595,6 +602,7 @@ func VarIntSerializeSize(val uint64) int {
 func ReadVarString(r io.Reader, pver uint32) (string, error) {
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
+		fmt.Println("ReadVarString --------- ReadVarInt,err != nil")
 		return "", err
 	}
 
@@ -610,6 +618,32 @@ func ReadVarString(r io.Reader, pver uint32) (string, error) {
 	buf := make([]byte, count)
 	_, err = io.ReadFull(r, buf)
 	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
+}
+
+func ReadVarString2(r io.Reader, pver uint32) (string, error) {
+	count, err := ReadVarInt(r, pver)
+	if err != nil {
+		fmt.Println("ReadVarString --------- ReadVarInt,err != nil")
+		//return "", err
+		count = 2
+	}
+
+	// Prevent variable length strings that are larger than the maximum
+	// message size.  It would be possible to cause memory exhaustion and
+	// panics without a sane upper bound on this count.
+	if count > MaxMessagePayload {
+		str := fmt.Sprintf("variable length string is too long "+
+			"[count %d, max %d]", count, MaxMessagePayload)
+		return "", messageError("ReadVarString", str)
+	}
+
+	buf := make([]byte, count)
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
+		fmt.Println("ReadVarString --------- ReadFull,err != nil")
 		return "", err
 	}
 	return string(buf), nil
@@ -639,6 +673,7 @@ func ReadVarBytes(r io.Reader, pver uint32, maxAllowed uint32,
 
 	count, err := ReadVarInt(r, pver)
 	if err != nil {
+		fmt.Println("ReadVarBytes --------- ReadVarInt,err != nil")
 		return nil, err
 	}
 

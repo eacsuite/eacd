@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
 	"github.com/eacsuite/eacd/chaincfg/chainhash"
 )
@@ -76,7 +77,7 @@ const (
 	// it is intentionally not included here.
 	// Version 4 bytes + Varint number of transaction inputs 1 byte + Varint
 	// number of transaction outputs 1 byte + LockTime 4 bytes + min input
-	// payload + min output payload + Varint number of strTxComment 1 byte.
+	// payload + min output payload + Varint number of StrTxComment 1 byte.
 	minTxPayload = 11
 
 	// freeListMaxScriptSize is the size of each buffer in the free list
@@ -291,7 +292,7 @@ type MsgTx struct {
 	TxIn     []*TxIn
 	TxOut    []*TxOut
 	LockTime uint32
-	strTxComment string
+	StrTxComment string
 }
 
 // AddTxIn adds a transaction input to the message.
@@ -340,7 +341,7 @@ func (msg *MsgTx) Copy() *MsgTx {
 		TxIn:     make([]*TxIn, 0, len(msg.TxIn)),
 		TxOut:    make([]*TxOut, 0, len(msg.TxOut)),
 		LockTime: msg.LockTime,
-		strTxComment: msg.strTxComment,
+		StrTxComment: msg.StrTxComment,
 	}
 
 	// Deep copy the old TxIn data.
@@ -580,10 +581,25 @@ func (msg *MsgTx) BtcDecode(r io.Reader, pver uint32, enc MessageEncoding) error
 		return err
 	}
 
-	msg.strTxComment,err =  ReadVarString(r, pver)
-	if err != nil {
-		returnScriptBuffers()
-		return err
+	// if msg.Version ==1{
+	// fmt.Printf("MsgTx.BtcDecode ---------msg.Version:%d ,msg.TxOut :%s, msg.TxIn : %s, msg.LockTime:%d\n",msg.Version, &msg.TxOut , &msg.TxIn, msg.LockTime)
+	// fmt.Printf("MsgTx.BtcDecode ---------msg.TxIn[0].Sequence :%d, msg.TxIn[0].SignatureScript : %x,msg.TxIn[0].Witness:%x,msg.TxIn[0].PreviousOutPoint:%x\n",&msg.TxIn[0].Sequence , &msg.TxIn[0].SignatureScript, &msg.TxIn[0].Witness, &msg.TxIn[0].PreviousOutPoint)
+	// fmt.Printf("MsgTx.BtcDecode ---------msg.TxOut[0].Value :%d, msg.TxOut[0].PkScript : %x\n",&msg.TxOut[0].Value , &msg.TxOut[0].PkScript)
+	// }
+
+	if msg.Version > 1 {
+		msg.StrTxComment,err =  ReadVarString(r, pver)
+
+		if err != nil  {
+			//fmt.Printf("MsgTx.BtcDecode --------- msg.StrTxComment,err != nil err:%s, msg.StrTxComment:%s\n",err,msg.StrTxComment)
+			returnScriptBuffers()
+			return err
+		}
+	}
+
+	if strings.Count(msg.StrTxComment,"")-1 >0{
+		fmt.Printf("MsgTx.BtcDecode --------- msg.StrTxComment,err == nil  msg.StrTxComment :%s\n " , msg.StrTxComment)
+	//fmt.Println("MsgTx.BtcDecode --------- msg.StrTxComment,err == nil msg.StrTxComment : " + msg.StrTxComment)
 	}
 
 	// Create a single allocation to house all of the scripts and set each
@@ -748,14 +764,91 @@ func (msg *MsgTx) BtcEncode(w io.Writer, pver uint32, enc MessageEncoding) error
 		}
 	}
 
+
 	err = binarySerializer.PutUint32(w, littleEndian, msg.LockTime)
 	if err != nil {
 		return err
 	}
 
-	return WriteVarString(w, pver, msg.strTxComment)
+		
+	// --------- for eac
+	if msg.Version > 1 {
+
+		err = WriteVarString(w, pver,  msg.StrTxComment)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+	
 }
 
+func (msg *MsgTx) BtcEncode2(w io.Writer, pver uint32, enc MessageEncoding) error {
+	err := binarySerializer.PutUint32(w, littleEndian, uint32(msg.Version))
+	if err != nil {
+		return err
+	}
+
+	// If the encoding version is set to WitnessEncoding, and the Flags
+	// field for the MsgTx aren't 0x00, then this indicates the transaction
+	// is to be encoded using the new witness inclusionary structure
+	// defined in BIP0144.
+	doWitness := enc == WitnessEncoding && msg.HasWitness()
+	if doWitness {
+		// After the txn's Version field, we include two additional
+		// bytes specific to the witness encoding. The first byte is an
+		// always 0x00 marker byte, which allows decoders to
+		// distinguish a serialized transaction with witnesses from a
+		// regular (legacy) one. The second byte is the Flag field,
+		// which at the moment is always 0x01, but may be extended in
+		// the future to accommodate auxiliary non-committed fields.
+		if _, err := w.Write(witessMarkerBytes); err != nil {
+			return err
+		}
+	}
+
+	count := uint64(len(msg.TxIn))
+	err = WriteVarInt(w, pver, count)
+	if err != nil {
+		return err
+	}
+
+	for _, ti := range msg.TxIn {
+		err = writeTxIn(w, pver, msg.Version, ti)
+		if err != nil {
+			return err
+		}
+	}
+
+	count = uint64(len(msg.TxOut))
+	err = WriteVarInt(w, pver, count)
+	if err != nil {
+		return err
+	}
+
+	for _, to := range msg.TxOut {
+		err = WriteTxOut(w, pver, msg.Version, to)
+		if err != nil {
+			return err
+		}
+	}
+
+	// If this transaction is a witness transaction, and the witness
+	// encoded is desired, then encode the witness for each of the inputs
+	// within the transaction.
+	if doWitness {
+		for _, ti := range msg.TxIn {
+			err = writeTxWitness(w, pver, msg.Version, ti.Witness)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return binarySerializer.PutUint32(w, littleEndian, msg.LockTime)
+
+}
 
 // HasWitness returns false if none of the inputs within the transaction
 // contain witness data, true false otherwise.
@@ -798,13 +891,18 @@ func (msg *MsgTx) SerializeNoWitness(w io.Writer) error {
 	return msg.BtcEncode(w, 0, BaseEncoding)
 }
 
+// --------- for eac no strTxcommit
+func (msg *MsgTx) SerializeNoWitness2(w io.Writer) error {
+	return msg.BtcEncode2(w, 0, BaseEncoding)
+}
+
 // baseSize returns the serialized size of the transaction without accounting
 // for any witness data.
 func (msg *MsgTx) baseSize() int {
 	// Version 4 bytes + LockTime 4 bytes + Serialized varint size for the
 	// number of transaction inputs and outputs.
 	n := 8 + VarIntSerializeSize(uint64(len(msg.TxIn))) +
-		VarIntSerializeSize(uint64(len(msg.TxOut))) + len(msg.strTxComment)
+		VarIntSerializeSize(uint64(len(msg.TxOut))) + VarIntSerializeSize(uint64(len(msg.StrTxComment)))
 
 	for _, txIn := range msg.TxIn {
 		n += txIn.SerializeSize()
@@ -813,6 +911,9 @@ func (msg *MsgTx) baseSize() int {
 	for _, txOut := range msg.TxOut {
 		n += txOut.SerializeSize()
 	}
+
+	n += len(msg.StrTxComment)
+
 
 	return n
 }
@@ -908,7 +1009,7 @@ func NewMsgTx(version int32) *MsgTx {
 		Version: version,
 		TxIn:    make([]*TxIn, 0, defaultTxInOutAlloc),
 		TxOut:   make([]*TxOut, 0, defaultTxInOutAlloc),
-		strTxComment:  "",
+		StrTxComment:  "",// []byte(""),
 	}
 }
 
